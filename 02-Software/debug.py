@@ -12,8 +12,6 @@ class niveau_log(Enum):
 _niveau_de_log = niveau_log.PAS_DE_LOG
 
 class debug():
-
-
     def set_log_level(niveau_log: niveau_log):
         global _niveau_de_log
         _niveau_de_log = niveau_log
