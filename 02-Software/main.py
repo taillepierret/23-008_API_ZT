@@ -70,6 +70,11 @@ def trouver_contenu_sur_une_page(page: str):
 
     tableau_de_retour = []
 
+    bande_audio = [1]
+    nom_de_contenu = [1]
+    numero_saison = [1]
+    lien_vers_contenu = [1]
+
     while index_debut_saison < len(page): #TODO ajouter un timeout
         index_debut_saison = page.find("saison", index_debut_saison)
 
@@ -117,20 +122,50 @@ def trouver_contenu_sur_une_page(page: str):
         index_debut_saison += 1
     return tableau_de_retour
 
+def rassembler_les_contenus_qui_ont_le_même_titre(contenus:list):
+    resultat = []
+    index_dans_resultat_contenu_deja_present = 0
+    index_dans_contenus_contenu_deja_present = 0
+    flag_presence_dans_tableau = False
 
-def liste_saisons_disponibles_avec_liens(recherches: list):
-    contenus_extraits = trouver_contenu_sur_une_page(recherches)
-    for contenu in (contenus_extraits):
-        print (contenu)
-        print ()
+    tab_temp = []
+    for i in range (len(contenus[0])):
+        if i == 0:
+            tab_temp.append(contenus[0][0])
+        else:
+            tab_temp.append([contenus[0][i]])
+    resultat.append(tab_temp)
 
-def liste_saisons_disponibles_avec_liens2(recherches: list):
+    for j in range (1,len(contenus)):
+        for i in range (len(resultat)):
+            if contenus[j][0] == resultat[i][0]:
+                flag_presence_dans_tableau = True
+                index_dans_resultat_contenu_deja_present = i
+                index_dans_contenus_contenu_deja_present = j
+        if not(flag_presence_dans_tableau):
+            tab_temp = []
+            for i in range (len(contenus[j])):
+                if i == 0:
+                    tab_temp.append(contenus[j][0])
+                else:
+                    tab_temp.append([contenus[j][i]])
+            resultat.append(tab_temp)
+        else:
+            flag_presence_dans_tableau = False
+            for i in range (len(contenus[j])):
+                if i != 0:
+                    resultat[index_dans_resultat_contenu_deja_present][i].append(contenus[index_dans_contenus_contenu_deja_present][i])
+            
+    return resultat
+
+def trouver_contenu_sur_une_recherche(recherches: list):
     contenus_extraits = []
     for page in recherches:
-        contenus_extraits_pour_une_page = trouver_contenu_sur_une_page(recherches[0])
-        for contenu in (contenus_extraits):
+        contenus_extraits_pour_une_page = trouver_contenu_sur_une_page(page)
+        for contenu in (contenus_extraits_pour_une_page):
             contenus_extraits.append(contenu)
-    dbg.debug_print(niveau_log.LOG ,contenus_extraits,True)
+            dbg.debug_print(niveau_log.DEBUG ,contenu,True)
+    contenus_extraits = rassembler_les_contenus_qui_ont_le_même_titre(contenus_extraits)
     return contenus_extraits
 
 
@@ -138,7 +173,7 @@ if __name__ == "__main__":
     debug = dbg()
     dbg.set_log_level(niveau_log.LOG)
     recherches = recherche_de_contenu(type_contenu.SERIES,"breaking bad")
-    liste_saisons_disponibles_avec_liens(recherches[0])
-    #print(recherches[4])
-    #ecrire_resultat_dans_html()
+    contenus_extraits = trouver_contenu_sur_une_recherche(recherches)
+    for contenu in (contenus_extraits):
+        dbg.debug_print(niveau_log.LOG ,contenu,True)
     

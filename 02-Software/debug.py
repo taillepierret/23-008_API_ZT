@@ -22,12 +22,12 @@ class debug():
         global _niveau_de_log
         return _niveau_de_log
 
-    def debug_print(niveau_log: niveau_log, message: str, flag_affichage_heure: bool):
+    def debug_print(niveau_log: niveau_log, message, flag_affichage_heure: bool):
         global _niveau_de_log
-        message = "[" + str(niveau_log).replace("niveau_log.","") + "]" + message
+        message = "[" + str(niveau_log).replace("niveau_log.","") + "]" + str(message)
         if niveau_log.value <= _niveau_de_log.value:
             if flag_affichage_heure:
                 heure_actuelle = datetime.now().strftime("%H:%M:%S")
-                print (heure_actuelle + ": " + message)
+                print (heure_actuelle + ": " + str(message))
             else:
                 print (message)
