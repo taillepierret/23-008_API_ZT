@@ -167,22 +167,23 @@ def passer_captcha(url, captcha_input):
     driver = webdriver.Firefox()
     
     driver.get(url)
+    # Ouvrir le site web avec le bouton de captcha
+    #driver.get('https://challenges.cloudflare.com/turnstile/v0/api.js')
+    # Attendre que le captcha se charge (vous pouvez ajuster le délai d'attente si nécessaire)
+    time.sleep(5)
 
-    try:
-        print("banjour")
-        time.sleep(3)
-        captcha_field = driver.find_element(By.ID, 'subButton')
-        captcha_field.send_keys(captcha_input)
-        captcha_field.submit()
+    # Résoudre le captcha en utilisant la fonction JavaScript onSubmit2()
+    driver.execute_script("onSubmit2();")
+    # Attendre un court instant pour que le formulaire soit soumis (ajustez ce délai selon les besoins)
+    time.sleep(2)
 
-        # Attendre un court instant pour que la page se charge (ajustez ce délai selon les besoins)
-        time.sleep(2)
+    # Soumettre le formulaire après la résolution du captcha
+    driver.find_element(By.ID,'subButton').click()
+    # Attendre un court instant pour que la page se charge après la soumission du formulaire
+    time.sleep(2)
 
-        # Vous pouvez ajouter ici d'autres actions à effectuer après avoir soumis le captcha
-        # Par exemple, vérifier si la soumission a réussi, vérifier une réponse, etc.
-
-    finally:
-        driver.quit()
+    # Fermer le navigateur
+    driver.quit()
 
 
 if __name__ == "__main__":
