@@ -40,7 +40,6 @@ def recherche_de_contenu (type_de_contenu: type_contenu, nom_de_la_recherche: st
         elif i == nombre_de_page_max-1:
             dbg.debug_print(niveau_log.ERREUR ,f"Veuillez faire une recherche plus concise, il y a trop de pages de resultats, le nombre de page maximum est de : {nombre_de_page_max}",True)
 
-
 def ecrire_resultat_dans_html(resultat_recherche:str):
     # Ouvrir le fichier HTML en mode écriture
     with open("resultat.html", "w") as f:
@@ -172,8 +171,9 @@ def trouver_contenu_sur_une_recherche(recherches: list):
 if __name__ == "__main__":
     debug = dbg()
     dbg.set_log_level(niveau_log.LOG)
-    recherches = recherche_de_contenu(type_contenu.SERIES,"breaking bad")
+    recherches = recherche_de_contenu(type_contenu.SERIES,"chicago police")
     contenus_extraits = trouver_contenu_sur_une_recherche(recherches)
     for contenu in (contenus_extraits):
         dbg.debug_print(niveau_log.LOG ,contenu,True)
+        print()
     
