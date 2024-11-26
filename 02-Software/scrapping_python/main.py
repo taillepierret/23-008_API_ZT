@@ -9,12 +9,34 @@ nombre_de_page_max = 10
 
 app = Flask(__name__)  # Initialiser l'application Flask
 
+class Contenu:
+    def __init__(self, nom: str, saison: str, bande_audio: str, lien: str, image: str):
+        self.nom = nom
+        self.saison = saison
+        self.bande_audio = bande_audio
+        self.lien = lien
+        self.image = image
+
+    def to_dict(self):
+        return {
+            "nom": self.nom,
+            "saison": self.saison,
+            "bande_audio": self.bande_audio,
+            "lien": self.lien,
+            "image": self.image
+        }
+
+    @staticmethod
+    def from_dict(data):
+        return Contenu(data["nom"], data["saison"], data["bande_audio"], data["lien"])
+
 def open_website(url):
     """ renvoie le contenu de la page a l'URL selectionne"""
     try:
         response = requests.get(url)
         if response.status_code == 200:
             dbg.debug_print(niveau_log.DEBUG ,url,True)
+            ecrire_resultat_dans_un_fichier(response.text)
             return(response.text)
         else:
             dbg.debug_print(niveau_log.ERREUR ,f"Erreur lors de l'accès au site. Code d'état : {response.status_code}",True)
@@ -43,7 +65,7 @@ def recherche_de_contenu (type_de_contenu: str, nom_de_la_recherche: str):
 
 def ecrire_resultat_dans_un_fichier(resultat_recherche:str):
     # Ouvrir le fichier HTML en mode écriture
-    with open("resultat.html", "w") as f:
+    with open("resultat.html", "w", encoding="utf-8") as f:
         # Écrire le contenu HTML dans le fichier
         f.write(resultat_recherche)
 
@@ -192,7 +214,7 @@ def search_api():
 if __name__ == "__main__":
     debug = dbg()
     dbg.set_log_level(niveau_log.LOG)
-    recherches = recherche_de_contenu("series","person of interest")
+    recherches = recherche_de_contenu("series","oui")
     contenus_extraits = trouver_contenu_sur_une_recherche(recherches)
     for contenu in (contenus_extraits):
         dbg.debug_print(niveau_log.LOG ,contenu,True)
