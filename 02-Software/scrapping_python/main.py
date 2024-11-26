@@ -191,32 +191,37 @@ def trouver_contenu_sur_une_recherche(recherches: list):
     contenus_extraits = rassembler_les_contenus_qui_ont_le_même_titre(contenus_extraits)
     return contenus_extraits
 
+
+#exemple de requete: http://ip_adresse:5000/search?query=oui&type=series
 @app.route("/search", methods=["GET"])
 def search_api():
     """ Endpoint Flask pour effectuer une recherche """
     # Récupérer les paramètres de requête
     query = request.args.get("query")
-    content_type = request.args.get("type", "films")  # Default : films
+    content_type = request.args.get("type")
 
     if not query:
         return jsonify({"error": "Le paramètre 'query' est requis."}), 400
+    
+    if not content_type:
+        return jsonify({"error": "Le paramètre 'type' est requis."}), 400
 
     # Effectuer la recherche
     try:
         recherches = recherche_de_contenu(content_type, query)
         contenus = trouver_contenu_sur_une_recherche(recherches)
 
-        return jsonify({"results": contenus})
+        return jsonify({"results": contenus}), 200
     except Exception as e:
         dbg.debug_print(niveau_log.ERREUR, f"Erreur API : {e}", True)
         return jsonify({"error": str(e)}), 500
 
 if __name__ == "__main__":
     debug = dbg()
-    dbg.set_log_level(niveau_log.LOG)
-    recherches = recherche_de_contenu("series","oui")
-    contenus_extraits = trouver_contenu_sur_une_recherche(recherches)
-    for contenu in (contenus_extraits):
-        dbg.debug_print(niveau_log.LOG ,contenu,True)
-        #app.run(host="0.0.0.0", port=5000)
+    dbg.set_log_level(niveau_log.VERBOSE)
+    # recherches = recherche_de_contenu("series","oui")
+    # contenus_extraits = trouver_contenu_sur_une_recherche(recherches)
+    # for contenu in (contenus_extraits):
+    #     dbg.debug_print(niveau_log.LOG ,contenu,True)
+    app.run(host="0.0.0.0", port=5000)
     
