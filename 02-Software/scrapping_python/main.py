@@ -3,8 +3,11 @@ from enum import Enum
 from debug import debug as dbg
 from debug import niveau_log
 from flask import Flask, request, jsonify
+
 url_zone_telechargement = "https://www.zone-telechargement.makeup"
 nombre_de_page_max = 10
+
+app = Flask(__name__)  # Initialiser l'application Flask
 
 def open_website(url):
     """ renvoie le contenu de la page a l'URL selectionne"""
@@ -18,10 +21,12 @@ def open_website(url):
     except requests.exceptions.RequestException as e:
         dbg.debug_print(niveau_log.ERREUR ,f"Une erreur s'est produite : {e}",True)
 
+
 def recherche_de_contenu_dans_une_page_ZT(numero_page: int, lien_de_recherche: str):
-    """fait une recherche dans une page bien precise sur zone de telechargement. Il faut lui charger une recherche zoen de telechargement et un numero de page"""
+    """fait une recherche dans une page bien precise sur zone de telechargement. Il faut lui charger une recherche zone de telechargement et un numero de page"""
     url_de_recherche = lien_de_recherche + "&page=" + str(numero_page)
     return open_website(url_de_recherche)
+
 
 def recherche_de_contenu (type_de_contenu: str, nom_de_la_recherche: str):
     url_de_recherche = url_zone_telechargement + "/?search=" + nom_de_la_recherche.replace(" ", "+") + "&p=" + type_de_contenu.value
@@ -36,13 +41,14 @@ def recherche_de_contenu (type_de_contenu: str, nom_de_la_recherche: str):
             dbg.debug_print(niveau_log.ERREUR ,f"Veuillez faire une recherche plus concise, il y a trop de pages de resultats, le nombre de page maximum est de : {nombre_de_page_max}",True)
 
 
-def ecrire_resultat_dans_html(resultat_recherche:str):
+def ecrire_resultat_dans_un_fichier(resultat_recherche:str):
     # Ouvrir le fichier HTML en mode écriture
     with open("resultat.html", "w") as f:
         # Écrire le contenu HTML dans le fichier
         f.write(resultat_recherche)
 
 def recherche_mot_entre_2_mots (mot_debut: str, mot_fin: str, phrase:str, index_haut_de_recherche):
+    """renvoie le mot entre 2 mots donnés dans une phrase"""
     index_recherche_caractere_fin_mot = index_haut_de_recherche
     while phrase[index_recherche_caractere_fin_mot:index_recherche_caractere_fin_mot+len(mot_fin)] != mot_fin:#TODO ajouter un timeout
         index_recherche_caractere_fin_mot-=1
@@ -163,6 +169,25 @@ def trouver_contenu_sur_une_recherche(recherches: list):
     contenus_extraits = rassembler_les_contenus_qui_ont_le_même_titre(contenus_extraits)
     return contenus_extraits
 
+@app.route("/search", methods=["GET"])
+def search_api():
+    """ Endpoint Flask pour effectuer une recherche """
+    # Récupérer les paramètres de requête
+    query = request.args.get("query")
+    content_type = request.args.get("type", "films")  # Default : films
+
+    if not query:
+        return jsonify({"error": "Le paramètre 'query' est requis."}), 400
+
+    # Effectuer la recherche
+    try:
+        recherches = recherche_de_contenu(content_type, query)
+        contenus = trouver_contenu_sur_une_recherche(recherches)
+
+        return jsonify({"results": contenus})
+    except Exception as e:
+        dbg.debug_print(niveau_log.ERREUR, f"Erreur API : {e}", True)
+        return jsonify({"error": str(e)}), 500
 
 if __name__ == "__main__":
     debug = dbg()
@@ -171,5 +196,5 @@ if __name__ == "__main__":
     contenus_extraits = trouver_contenu_sur_une_recherche(recherches)
     for contenu in (contenus_extraits):
         dbg.debug_print(niveau_log.LOG ,contenu,True)
-        print()
+        #app.run(host="0.0.0.0", port=5000)
     
