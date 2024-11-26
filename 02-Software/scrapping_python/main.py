@@ -29,7 +29,7 @@ def recherche_de_contenu_dans_une_page_ZT(numero_page: int, lien_de_recherche: s
 
 
 def recherche_de_contenu (type_de_contenu: str, nom_de_la_recherche: str):
-    url_de_recherche = url_zone_telechargement + "/?search=" + nom_de_la_recherche.replace(" ", "+") + "&p=" + type_de_contenu.value
+    url_de_recherche = url_zone_telechargement + "/?search=" + nom_de_la_recherche.replace(" ", "+") + "&p=" + type_de_contenu
     tab_recherches = []
     for i in range (1,nombre_de_page_max):
         recherche = recherche_de_contenu_dans_une_page_ZT(i,url_de_recherche)
