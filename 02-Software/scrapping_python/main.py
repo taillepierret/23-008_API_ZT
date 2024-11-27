@@ -271,5 +271,5 @@ if __name__ == "__main__":
     # dbg.debug_print(niveau_log.LOG ,contenus_rassembles,True)
     
     
-    # app.run(host="0.0.0.0", port=5000)
+    app.run(host="0.0.0.0", port=5000)
     
