@@ -229,7 +229,7 @@ def rassembler_contenu_par_nom(contenus: list):
                 "image": [contenu[4]],
                 "date_de_publication": [contenu[5]]
             })
-    contenus_rassembles = json.dumps(contenus_rassembles, indent=2, ensure_ascii=False)
+    contenus_rassembles = json.dumps(contenus_rassembles)
     return contenus_rassembles
 
 
@@ -263,10 +263,10 @@ if __name__ == "__main__":
     dbg.set_log_level(niveau_log.VERBOSE)
 
 
-    recherches = recherche_de_contenu("series","harry")
-    contenus_extraits = trouver_contenu_sur_une_recherche(recherches)
-    for contenu in (contenus_extraits):
-        dbg.debug_print(niveau_log.LOG ,contenu,True)
+    # recherches = recherche_de_contenu("series","harry")
+    # contenus_extraits = trouver_contenu_sur_une_recherche(recherches)
+    # for contenu in (contenus_extraits):
+    #     dbg.debug_print(niveau_log.LOG ,contenu,True)
     # contenus_rassembles = rassembler_contenu_par_nom(contenus_extraits)
     # dbg.debug_print(niveau_log.LOG ,contenus_rassembles,True)
     
