@@ -5,17 +5,18 @@ from debug import niveau_log
 from flask import Flask, request, jsonify
 
 url_zone_telechargement = "https://www.zone-telechargement.makeup"
-nombre_de_page_max = 10
+nombre_de_page_max = 15
 
 app = Flask(__name__)  # Initialiser l'application Flask
 
 class Contenu:
-    def __init__(self, nom: str, saison: str, bande_audio: str, lien: str, image: str):
+    def __init__(self, nom: str, saison: str, bande_audio: str, lien: str, image: str, date_de_publication: str):
         self.nom = nom
         self.saison = saison
         self.bande_audio = bande_audio
         self.lien = lien
         self.image = image
+        self.date_de_publication = date_de_publication
 
     def to_dict(self):
         return {
@@ -23,7 +24,8 @@ class Contenu:
             "saison": self.saison,
             "bande_audio": self.bande_audio,
             "lien": self.lien,
-            "image": self.image
+            "image": self.image,
+            "date_de_publication": self.date_de_publication
         }
 
     @staticmethod
@@ -51,6 +53,7 @@ def recherche_de_contenu_dans_une_page_ZT(numero_page: int, lien_de_recherche: s
 
 
 def recherche_de_contenu (type_de_contenu: str, nom_de_la_recherche: str):
+    """fait une recherche sur zone de telechargement. Il faut lui charger un type de contenu et un nom de recherche. La fonction renvoie un tableau de recherche contenant les resultats de chaque page"""
     url_de_recherche = url_zone_telechargement + "/?search=" + nom_de_la_recherche.replace(" ", "+") + "&p=" + type_de_contenu
     tab_recherches = []
     for i in range (1,nombre_de_page_max):
@@ -80,10 +83,11 @@ def recherche_mot_entre_2_mots (mot_debut: str, mot_fin: str, phrase:str, index_
     mot = phrase[index_recherche_caractere_debut_mot+len(mot_debut):index_recherche_caractere_fin_mot]
     return mot
 
-def trouver_contenu_sur_une_page(page: str):
+def trouver_contenu_sur_une_page(page: str): #/!\ le numero de saison ne peut pas etre superieur a 9, TODO a corriger
     """renvoie un tableau avec un tableau de noms de contenu, un tableau de saisons et
     un tableau de liens partiels correspondants à chaque saison sur une page"""
     index_debut_saison = 0
+    index_debut_recherche = 0
     index_fin_saison = 0
 
     index_recherche_nom_serie = 0
@@ -98,34 +102,36 @@ def trouver_contenu_sur_une_page(page: str):
     numero_saison = [1]
     lien_vers_contenu = [1]
 
-    while index_debut_saison < len(page): #TODO ajouter un timeout
-        index_debut_saison = page.find("saison", index_debut_saison)
+    while index_debut_recherche < len(page): #TODO ajouter un timeout
+        index_debut_recherche = page.find("Publié le", index_debut_saison)
 
-        if index_debut_saison == -1:  # Si le mot n'est plus trouvé, sortir de la boucle
+        if index_debut_recherche == -1:  # Si le mot n'est plus trouvé, sortir de la boucle
             break
-
+        
+        index_debut_saison = page.find("saison", index_debut_recherche)
         index_fin_saison = index_debut_saison + len("saison") + 1  # Calculer l'index du caractère suivant
-        index_recherche_nom_serie = index_debut_saison
-        while page[index_recherche_nom_serie] != "<":#TODO ajouter un timeout
-            index_recherche_nom_serie -= 1
+        while page[index_debut_recherche] != "Publié le":#TODO ajouter un timeout
+            index_debut_recherche -= 1
             
 
         index_aide_recherche_caractere_fin_bande_audio = index_debut_saison
-        mot_fin_de_phrase_contenant_les_infos = page[index_aide_recherche_caractere_fin_bande_audio:index_aide_recherche_caractere_fin_bande_audio+7]
+        mot_fin_de_phrase_contenant_les_infos = page[index_debut_recherche:index_aide_recherche_caractere_fin_bande_audio+7]
         flag_saison_a_ne_pas_prendre_en_compte = False
-        while mot_fin_de_phrase_contenant_les_infos != "</span>" :#TODO ajouter un timeout
+        while mot_fin_de_phrase_contenant_les_infos != "</b></span></span><br>" :#TODO ajouter un timeout
             index_aide_recherche_caractere_fin_bande_audio += 1
             mot_fin_de_phrase_contenant_les_infos = page[index_aide_recherche_caractere_fin_bande_audio:index_aide_recherche_caractere_fin_bande_audio+7]
-            if index_aide_recherche_caractere_fin_bande_audio-index_debut_saison>200:
+            if index_aide_recherche_caractere_fin_bande_audio-index_debut_recherche>200:
                 flag_saison_a_ne_pas_prendre_en_compte = True
                 break
 
         if not(flag_saison_a_ne_pas_prendre_en_compte):
-            phrase_contenant_les_infos = page[index_recherche_nom_serie:index_aide_recherche_caractere_fin_bande_audio]
+            phrase_contenant_les_infos = page[index_debut_recherche:index_aide_recherche_caractere_fin_bande_audio]
+            print(phrase_contenant_les_infos)
             bande_audio = recherche_mot_entre_2_mots("(",")",phrase_contenant_les_infos,len(phrase_contenant_les_infos)-1)
             nom_de_contenu = recherche_mot_entre_2_mots(">","-",phrase_contenant_les_infos,len(phrase_contenant_les_infos)-1)
             numero_saison = page[index_debut_saison:index_fin_saison]
             lien_vers_contenu = "/" + recherche_mot_entre_2_mots("href=\"","\">"+nom_de_contenu,phrase_contenant_les_infos,len(phrase_contenant_les_infos)-1)
+            lien_vers_image = recherche_mot_entre_2_mots("src=\"","\" width",phrase_contenant_les_infos,len(phrase_contenant_les_infos)-1)
             
             dbg.debug_print(niveau_log.DEBUG ," ",False)
             dbg.debug_print(niveau_log.DEBUG ,nom_de_contenu,True)
@@ -133,12 +139,14 @@ def trouver_contenu_sur_une_page(page: str):
             dbg.debug_print(niveau_log.DEBUG ,bande_audio,True)
             dbg.debug_print(niveau_log.DEBUG ,lien_vers_contenu,True)
             dbg.debug_print(niveau_log.DEBUG ,phrase_contenant_les_infos,True)
+            dbg.debug_print(niveau_log.DEBUG ,lien_vers_image,True)
 
             tab_donnees_recuperees = []
             tab_donnees_recuperees.append(nom_de_contenu)
             tab_donnees_recuperees.append(numero_saison)
             tab_donnees_recuperees.append(bande_audio)
             tab_donnees_recuperees.append(lien_vers_contenu)
+            tab_donnees_recuperees.append(lien_vers_image)
             tableau_de_retour.append(tab_donnees_recuperees)
 
         # Déplacer l'index de recherche pour éviter de trouver le même mot à nouveau
@@ -185,10 +193,11 @@ def trouver_contenu_sur_une_recherche(recherches: list):
     contenus_extraits = []
     for page in recherches:
         contenus_extraits_pour_une_page = trouver_contenu_sur_une_page(page)
+        print(contenus_extraits_pour_une_page)
         for contenu in (contenus_extraits_pour_une_page):
             contenus_extraits.append(contenu)
             dbg.debug_print(niveau_log.DEBUG ,contenu,True)
-    contenus_extraits = rassembler_les_contenus_qui_ont_le_même_titre(contenus_extraits)
+    #contenus_extraits = rassembler_les_contenus_qui_ont_le_même_titre(contenus_extraits)
     return contenus_extraits
 
 
@@ -219,9 +228,13 @@ def search_api():
 if __name__ == "__main__":
     debug = dbg()
     dbg.set_log_level(niveau_log.VERBOSE)
-    # recherches = recherche_de_contenu("series","oui")
-    # contenus_extraits = trouver_contenu_sur_une_recherche(recherches)
-    # for contenu in (contenus_extraits):
-    #     dbg.debug_print(niveau_log.LOG ,contenu,True)
-    app.run(host="0.0.0.0", port=5000)
+
+
+    recherches = recherche_de_contenu("series","harry")
+    contenus_extraits = trouver_contenu_sur_une_recherche(recherches)
+    for contenu in (contenus_extraits):
+        dbg.debug_print(niveau_log.LOG ,contenu,True)
+    
+    
+    # app.run(host="0.0.0.0", port=5000)
     
