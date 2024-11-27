@@ -265,10 +265,10 @@ if __name__ == "__main__":
 
     recherches = recherche_de_contenu("series","harry")
     contenus_extraits = trouver_contenu_sur_une_recherche(recherches)
-    # for contenu in (contenus_extraits):
-    #     dbg.debug_print(niveau_log.LOG ,contenu,True)
-    contenus_rassembles = rassembler_contenu_par_nom(contenus_extraits)
-    dbg.debug_print(niveau_log.LOG ,contenus_rassembles,True)
+    for contenu in (contenus_extraits):
+        dbg.debug_print(niveau_log.LOG ,contenu,True)
+    # contenus_rassembles = rassembler_contenu_par_nom(contenus_extraits)
+    # dbg.debug_print(niveau_log.LOG ,contenus_rassembles,True)
     
     
     # app.run(host="0.0.0.0", port=5000)
