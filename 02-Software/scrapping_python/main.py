@@ -10,6 +10,8 @@ nombre_de_page_max = 15
 
 app = Flask(__name__)  # Initialiser l'application Flask
 
+list_media_available = ["films","series"]
+                   
 class Contenu:
     def __init__(self, nom: str, saison: str, bande_audio: str, lien: str, image: str, date_de_publication: str):
         self.nom = nom
@@ -84,9 +86,13 @@ def recherche_mot_entre_2_mots (mot_debut: str, mot_fin: str, phrase:str, index_
     mot = phrase[index_recherche_caractere_debut_mot+len(mot_debut):index_recherche_caractere_fin_mot]
     return mot
 
-def trouver_contenu_sur_une_page(page: str): #/!\ le numero de saison ne peut pas etre superieur a 9, TODO a corriger
+def trouver_contenu_sur_une_page(page: str, type_de_contenu: str):
     """renvoie un tableau avec un tableau de noms de contenu, un tableau de saisons et
     un tableau de liens partiels correspondants à chaque saison sur une page"""
+
+    #si le type de contenu n'est pas géré, il faut renvoyer un tableau vide et false
+    if type_de_contenu not in list_media_available:
+        return [], False
     
     index_debut_recherche = 0
     index_fin_recherche = 0
@@ -106,14 +112,19 @@ def trouver_contenu_sur_une_page(page: str): #/!\ le numero de saison ne peut pa
         if index_debut_recherche == -1:  # Si le mot n'est plus trouvé, sortir de la boucle
             break
 
-        index_fin_recherche = page.find("</b></span></span><br>", index_debut_recherche)
+        index_fin_recherche = page.find("</span></span><br>", index_debut_recherche)
 
         phrase_contenant_les_infos = page[index_debut_recherche:index_fin_recherche]
+        bande_audio = recherche_mot_entre_2_mots("<b>(",")</b>",phrase_contenant_les_infos,len(phrase_contenant_les_infos)-1)
 
-        bande_audio = recherche_mot_entre_2_mots("(",")",phrase_contenant_les_infos,len(phrase_contenant_les_infos)-1)
 
-        nom_de_contenu = recherche_mot_entre_2_mots(">"," -",phrase_contenant_les_infos,len(phrase_contenant_les_infos)-1)
-        numero_saison = recherche_mot_entre_2_mots(" - ","</a><br>",phrase_contenant_les_infos,len(phrase_contenant_les_infos)-1)
+        if type_de_contenu == "series":
+            nom_de_contenu = recherche_mot_entre_2_mots(">"," -",phrase_contenant_les_infos,len(phrase_contenant_les_infos)-1)
+            numero_saison = recherche_mot_entre_2_mots(" - ","</a><br>",phrase_contenant_les_infos,len(phrase_contenant_les_infos)-1)
+
+        if type_de_contenu == "films":
+            nom_de_contenu = recherche_mot_entre_2_mots(">","</a>",phrase_contenant_les_infos,len(phrase_contenant_les_infos)-1)
+
         lien_vers_contenu = "/" + recherche_mot_entre_2_mots("href=\"","\">"+nom_de_contenu,phrase_contenant_les_infos,len(phrase_contenant_les_infos)-1)
         lien_vers_image = recherche_mot_entre_2_mots("src=\"","\" width",phrase_contenant_les_infos,len(phrase_contenant_les_infos)-1)
         date_de_publication = recherche_mot_entre_2_mots("<time>","</time>",phrase_contenant_les_infos,len(phrase_contenant_les_infos)-1)
@@ -129,7 +140,8 @@ def trouver_contenu_sur_une_page(page: str): #/!\ le numero de saison ne peut pa
 
         tab_donnees_recuperees = []
         tab_donnees_recuperees.append(nom_de_contenu)
-        tab_donnees_recuperees.append(numero_saison)
+        if type_de_contenu == "series":
+            tab_donnees_recuperees.append(numero_saison)
         tab_donnees_recuperees.append(bande_audio)
         tab_donnees_recuperees.append(lien_vers_contenu)
         tab_donnees_recuperees.append(lien_vers_image)
@@ -177,10 +189,10 @@ def rassembler_les_contenus_qui_ont_le_même_titre(contenus:list):
             
     return resultat
 
-def trouver_contenu_sur_une_recherche(recherches: list):
+def trouver_contenu_sur_une_recherche(recherches: list, type_de_contenu: str):
     contenus_extraits = []
     for page in recherches:
-        contenus_extraits_pour_une_page = trouver_contenu_sur_une_page(page)
+        contenus_extraits_pour_une_page = trouver_contenu_sur_une_page(page,type_de_contenu)
         for contenu in (contenus_extraits_pour_une_page):
             contenus_extraits.append(contenu)
     #contenus_extraits = rassembler_les_contenus_qui_ont_le_même_titre(contenus_extraits)
@@ -205,7 +217,7 @@ def trouver_contenu_sur_une_recherche(recherches: list):
 # ['Blacklist', 'Saison 6', 'VF', '/?p=serie&id=2697-blacklist-saison6', '/img/series/cd8de78fd7c20d9dc5f9345a34320cdf.webp', '30 August 2019']
 
 # Fonction pour rassembler les contenu par nom et ajouter les autres informations
-def rassembler_contenu_par_nom(contenus: list):
+def rassembler_contenu_par_nom(contenus: list, type_de_contenu: str):
     contenus_rassembles = []
     flag_presence_dans_tableau = False
     for contenu in contenus:
@@ -213,22 +225,37 @@ def rassembler_contenu_par_nom(contenus: list):
         flag_presence_dans_tableau = False
         for contenu_rassemble in contenus_rassembles:
             if contenu_rassemble["nom"][0] == nom:
-                contenu_rassemble["saison"].append(contenu[1])
-                contenu_rassemble["bande_audio"].append(contenu[2])
-                contenu_rassemble["lien"].append(contenu[3])
-                contenu_rassemble["image"].append(contenu[4])
-                contenu_rassemble["date_de_publication"].append(contenu[5])
+                if type_de_contenu == "series":
+                    contenu_rassemble["saison"].append(contenu[1])
+                    contenu_rassemble["bande_audio"].append(contenu[2])
+                    contenu_rassemble["lien"].append(contenu[3])
+                    contenu_rassemble["image"].append(contenu[4])
+                    contenu_rassemble["date_de_publication"].append(contenu[5])
+                else:
+                    contenu_rassemble["bande_audio"].append(contenu[1])
+                    contenu_rassemble["lien"].append(contenu[2])
+                    contenu_rassemble["image"].append(contenu[3])
+                    contenu_rassemble["date_de_publication"].append(contenu[4])
                 flag_presence_dans_tableau = True
                 break
         if flag_presence_dans_tableau == False:
-            contenus_rassembles.append({
-                "nom": [contenu[0]],
-                "saison": [contenu[1]],
-                "bande_audio": [contenu[2]],
-                "lien": [contenu[3]],
-                "image": [contenu[4]],
-                "date_de_publication": [contenu[5]]
-            })
+            if type_de_contenu == "series":
+                contenus_rassembles.append({
+                    "nom": [contenu[0]],
+                    "saison": [contenu[1]],
+                    "bande_audio": [contenu[2]],
+                    "lien": [contenu[3]],
+                    "image": [contenu[4]],
+                    "date_de_publication": [contenu[5]]
+                })
+            else:
+                contenus_rassembles.append({
+                    "nom": [contenu[0]],
+                    "bande_audio": [contenu[1]],
+                    "lien": [contenu[2]],
+                    "image": [contenu[3]],
+                    "date_de_publication": [contenu[4]]
+                })
     contenus_rassembles = json.dumps(contenus_rassembles)
     return contenus_rassembles
 
@@ -250,8 +277,8 @@ def search_api():
     # Effectuer la recherche
     try:
         recherches = recherche_de_contenu(content_type, query)
-        contenus = trouver_contenu_sur_une_recherche(recherches)
-        contenus = rassembler_contenu_par_nom(contenus)
+        contenus = trouver_contenu_sur_une_recherche(recherches, content_type)
+        contenus = rassembler_contenu_par_nom(contenus, content_type)
 
         return jsonify({"results": contenus}), 200
     except Exception as e:
@@ -263,13 +290,11 @@ if __name__ == "__main__":
     dbg.set_log_level(niveau_log.VERBOSE)
 
 
-    # recherches = recherche_de_contenu("series","harry")
-    # contenus_extraits = trouver_contenu_sur_une_recherche(recherches)
-    # for contenu in (contenus_extraits):
-    #     dbg.debug_print(niveau_log.LOG ,contenu,True)
-    # contenus_rassembles = rassembler_contenu_par_nom(contenus_extraits)
-    # dbg.debug_print(niveau_log.LOG ,contenus_rassembles,True)
+    recherches = recherche_de_contenu("series","oui")
+    contenus_extraits = trouver_contenu_sur_une_recherche(recherches,"series")
+    contenus_rassembles = rassembler_contenu_par_nom(contenus_extraits,"series")
+    dbg.debug_print(niveau_log.LOG ,contenus_rassembles,True)
     
     
-    app.run(host="0.0.0.0", port=5000)
+    # app.run(host="0.0.0.0", port=5000)
     
