@@ -290,11 +290,11 @@ if __name__ == "__main__":
     dbg.set_log_level(niveau_log.VERBOSE)
 
 
-    recherches = recherche_de_contenu("series","oui")
-    contenus_extraits = trouver_contenu_sur_une_recherche(recherches,"series")
-    contenus_rassembles = rassembler_contenu_par_nom(contenus_extraits,"series")
-    dbg.debug_print(niveau_log.LOG ,contenus_rassembles,True)
+    # recherches = recherche_de_contenu("series","oui")
+    # contenus_extraits = trouver_contenu_sur_une_recherche(recherches,"series")
+    # contenus_rassembles = rassembler_contenu_par_nom(contenus_extraits,"series")
+    # dbg.debug_print(niveau_log.LOG ,contenus_rassembles,True)
     
     
-    # app.run(host="0.0.0.0", port=5000)
+    app.run(host="0.0.0.0", port=5000)
     
