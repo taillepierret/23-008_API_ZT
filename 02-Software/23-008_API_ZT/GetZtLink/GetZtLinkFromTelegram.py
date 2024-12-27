@@ -2,6 +2,8 @@ from telethon.sync import TelegramClient
 import re
 from GetTelegramApiKeys import getTelegramApiKeys
 
+# if session_name.session file exists, it will be used to login without asking for a code and phone number
+
 group_username = 'ZT_officiel'  # Telegram channel name
 
 def extractLinkFromTelegramMessage(message):
@@ -22,7 +24,7 @@ def getZtLinkFromTelegram():
     if not success:
         return False,"GetTelegramApiKeys failed"
 
-    with TelegramClient('session_name', api_id, api_hash).start(phone_number) as client:
+    with TelegramClient('session_name', api_id, api_hash).start(phone_number) as client: 
         
         # Access recent messages from the group
         for message in client.iter_messages(group_username, limit=2):
