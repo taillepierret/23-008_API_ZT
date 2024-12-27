@@ -5,8 +5,11 @@ from debug import niveau_log
 from flask import Flask, request, jsonify
 import json
 
+
 url_zone_telechargement = "https://www.zone-telechargement.makeup"
 nombre_de_page_max = 15
+
+
 
 app = Flask(__name__)  # Initialiser l'application Flask
 
