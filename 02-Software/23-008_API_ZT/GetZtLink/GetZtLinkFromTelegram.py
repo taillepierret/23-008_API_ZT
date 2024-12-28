@@ -1,6 +1,6 @@
 from telethon.sync import TelegramClient
 import re
-from GetTelegramApiKeys import getTelegramApiKeys
+from GetZtLink.GetTelegramApiKeys import getTelegramApiKeys
 
 # if session_name.session file exists, it will be used to login without asking for a code and phone number
 

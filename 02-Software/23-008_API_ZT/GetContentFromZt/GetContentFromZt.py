@@ -1,17 +1,15 @@
 import requests
 from enum import Enum
-from debug import debug as dbg
-from debug import niveau_log
 from flask import Flask, request, jsonify
 import json
+from GetZtLink.GetZtLink import getZtLink
+
 
 
 #TODO ajouter un test du lien ZT, si ca marche pas aller le chercher dans telegram
 #TODO feature: ajouter le lien de ZT dans un bdd et aller regarder la bas en premier
 #TODO feature: ajouter les liens vers des contenus dans uen bdd qui sont deja decaptchatises, si ca marche pas aller les chercehr dans zt et les tester avant de les envoyer dans jdowloader
 #TODO ajouter dans un fichier l'historique des recherches et des contenus trouves
-
-url_zone_telechargement = "https://www.zone-telechargement.tools"
 
 nombre_de_page_max = 15
 
@@ -40,18 +38,31 @@ class Contenu:
     def from_dict(data):
         return Contenu(data["nom"], data["saison"], data["bande_audio"], data["lien"])
 
+def test_link(url):
+    try:
+        response = requests.get(url)
+        # Vérifie si la requête a réussi
+        if response.status_code == 200:
+            return True
+        else:
+            return False
+    except requests.exceptions.RequestException as e:
+        return False
+
 def open_website(url):
     """ renvoie le contenu de la page a l'URL selectionne"""
     try:
         response = requests.get(url)
         if response.status_code == 200:
-            dbg.debug_print(niveau_log.DEBUG ,url,True)
+            #dbg.debug_print(niveau_log.DEBUG ,url,True)
             ecrire_resultat_dans_un_fichier(response.text)
             return(response.text)
         else:
-            dbg.debug_print(niveau_log.ERREUR ,f"Erreur lors de l'accès au site. Code d'état : {response.status_code}",True)
+            #dbg.debug_print(niveau_log.ERREUR ,f"Erreur lors de l'accès au site. Code d'état : {response.status_code}",True)
+            return None
     except requests.exceptions.RequestException as e:
-        dbg.debug_print(niveau_log.ERREUR ,f"Une erreur s'est produite : {e}",True)
+        #dbg.debug_print(niveau_log.ERREUR ,f"Une erreur s'est produite : {e}",True)
+        return None
 
 
 def recherche_de_contenu_dans_une_page_ZT(numero_page: int, lien_de_recherche: str):
@@ -60,7 +71,7 @@ def recherche_de_contenu_dans_une_page_ZT(numero_page: int, lien_de_recherche: s
     return open_website(url_de_recherche)
 
 
-def recherche_de_contenu (type_de_contenu: str, nom_de_la_recherche: str):
+def recherche_de_contenu (type_de_contenu: str, nom_de_la_recherche: str, url_zone_telechargement:str):
     """fait une recherche sur zone de telechargement. Il faut lui charger un type de contenu et un nom de recherche. La fonction renvoie un tableau de recherche contenant les resultats de chaque page"""
     url_de_recherche = url_zone_telechargement + "/?search=" + nom_de_la_recherche.replace(" ", "+") + "&p=" + type_de_contenu
     tab_recherches = []
@@ -68,11 +79,11 @@ def recherche_de_contenu (type_de_contenu: str, nom_de_la_recherche: str):
         recherche = recherche_de_contenu_dans_une_page_ZT(i,url_de_recherche)
         tab_recherches.append(recherche)
         if "Aucune fiches trouvées." in recherche:
-            dbg.debug_print(niveau_log.DEBUG ,f"recherche terminee le nombre de page est de : {i-1}",True)
+            #dbg.debug_print(niveau_log.DEBUG ,f"recherche terminee le nombre de page est de : {i-1}",True)
             return tab_recherches
         elif i == nombre_de_page_max-1:
-            dbg.debug_print(niveau_log.ERREUR ,f"Veuillez faire une recherche plus concise, il y a trop de pages de resultats, le nombre de page maximum est de : {nombre_de_page_max}",True)
-
+            #dbg.debug_print(niveau_log.ERREUR ,f"Veuillez faire une recherche plus concise, il y a trop de pages de resultats, le nombre de page maximum est de : {nombre_de_page_max}",True)
+            return None
 
 def ecrire_resultat_dans_un_fichier(resultat_recherche:str):
     # Ouvrir le fichier HTML en mode écriture
@@ -269,9 +280,16 @@ def getContentFromZt(search_query: str, content_type: str):
     """
     Get the content from Zone Telechargement.
     """
+    url_zone_telechargement = ""
+    link_is_ok = test_link(url_zone_telechargement)
+    if not link_is_ok:
+        flag,url_zone_telechargement = getZtLink()
+    link_is_ok = test_link(url_zone_telechargement)
+    if not link_is_ok:
+        return False, None
     # Perform the search
-    recherches = recherche_de_contenu(content_type, search_query)
+    recherches = recherche_de_contenu(content_type, search_query, url_zone_telechargement)
     contenus_extraits = trouver_contenu_sur_une_recherche(recherches, content_type)
     contenus_rassembles = rassembler_contenu_par_nom(contenus_extraits, content_type)
 
-    return contenus_rassembles
+    return True,contenus_rassembles
