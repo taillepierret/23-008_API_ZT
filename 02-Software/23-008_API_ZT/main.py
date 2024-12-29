@@ -8,19 +8,29 @@ import json
 import asyncio
 from GetContentFromZt.GetContentFromZt import getContentFromZt
 
-app = Flask(__name__)  # Initialiser l'application Flask
+app = Flask(__name__)
+asyncio.set_event_loop(asyncio.new_event_loop())  # Set global event loop
 
 # Exemple de requête : http://ip_adresse:5000/search?query=oui&type=series
 @app.route("/search", methods=["GET"])
-def search_api():
-    # Création de l'event loop explicitement dans ce thread
-    thread = threading.Thread(target=run_async_function)
-    thread.start()
-    thread.join()
+async def search_api():
+    """ Endpoint Flask pour effectuer une recherche """
+    # Récupérer les paramètres de requête
+    query = request.args.get("query")
+    content_type = request.args.get("type")
 
-    # Votre code de recherche
+    if not query:
+        return jsonify({"error": "Le paramètre 'query' est requis."}), 400
+    
+    if not content_type:
+        return jsonify({"error": "Le paramètre 'type' est requis."}), 400
+
+    # Effectuer la recherche
     try:
-        flag_result_ok, contenus = getContentFromZt(query, content_type)
+        # Appel à getContentFromZt dans une boucle asyncio
+        loop = asyncio.get_event_loop()
+        flag_result_ok, contenus = await loop.run_in_executor(None, getContentFromZt, query, content_type)
+        
         if not flag_result_ok:
             return jsonify({"error": "Aucun résultat trouvé."}), 404
         else:
