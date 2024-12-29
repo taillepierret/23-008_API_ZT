@@ -12,26 +12,23 @@ app = Flask(__name__)  # Initialiser l'application Flask
 # Exemple de requête : http://ip_adresse:5000/search?query=oui&type=series
 @app.route("/search", methods=["GET"])
 def search_api():
-    """Endpoint Flask pour effectuer une recherche."""
-    # Récupérer les paramètres de requête
+    """ Endpoint Flask pour effectuer une recherche """
     query = request.args.get("query")
     content_type = request.args.get("type")
 
-    if not query:
-        return jsonify({"error": "Le paramètre 'query' est requis."}), 400
+    if not query or not content_type:
+        return jsonify({"error": "Les paramètres 'query' et 'type' sont requis."}), 400
 
-    if not content_type:
-        return jsonify({"error": "Le paramètre 'type' est requis."}), 400
-
-    # Effectuer la recherche
     try:
-        flag_result_ok, contenus = getContentFromZt(query, content_type)
+        # Exécutez la fonction asynchrone dans la boucle d'événements
+        result = asyncio.run(getContentFromZt(query, content_type))
+        flag_result_ok, contenus = result
+
         if not flag_result_ok:
             return jsonify({"error": "Aucun résultat trouvé."}), 404
-        else:
-            return jsonify({"results": contenus}), 200
+        return jsonify({"results": contenus}), 200
+
     except Exception as e:
-        dbg.debug_print(niveau_log.ERREUR, f"Erreur API : {e}", True)
         return jsonify({"error": str(e)}), 500
 
 
