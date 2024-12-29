@@ -1,0 +1,4 @@
+argparse  # Standard library, pas besoin d'ajout
+requests
+Flask
+telethon
