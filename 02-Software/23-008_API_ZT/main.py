@@ -13,23 +13,20 @@ app = Flask(__name__)  # Initialiser l'application Flask
 # Exemple de requête : http://ip_adresse:5000/search?query=oui&type=series
 @app.route("/search", methods=["GET"])
 def search_api():
-    """ Endpoint Flask pour effectuer une recherche """
-    query = request.args.get("query")
-    content_type = request.args.get("type")
+    # Création de l'event loop explicitement dans ce thread
+    thread = threading.Thread(target=run_async_function)
+    thread.start()
+    thread.join()
 
-    if not query or not content_type:
-        return jsonify({"error": "Les paramètres 'query' et 'type' sont requis."}), 400
-
+    # Votre code de recherche
     try:
-        # Exécutez la fonction asynchrone dans la boucle d'événements
-        result = asyncio.run(getContentFromZt(query, content_type))
-        flag_result_ok, contenus = result
-
+        flag_result_ok, contenus = getContentFromZt(query, content_type)
         if not flag_result_ok:
             return jsonify({"error": "Aucun résultat trouvé."}), 404
-        return jsonify({"results": contenus}), 200
-
+        else:
+            return jsonify({"results": contenus}), 200
     except Exception as e:
+        dbg.debug_print(niveau_log.ERREUR, f"Erreur API : {e}", True)
         return jsonify({"error": str(e)}), 500
 
 
