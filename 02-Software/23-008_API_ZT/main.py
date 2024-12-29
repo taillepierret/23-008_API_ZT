@@ -5,6 +5,7 @@ from debug import debug as dbg
 from debug import niveau_log
 from flask import Flask, request, jsonify
 import json
+import asyncio
 from GetContentFromZt.GetContentFromZt import getContentFromZt
 
 app = Flask(__name__)  # Initialiser l'application Flask
