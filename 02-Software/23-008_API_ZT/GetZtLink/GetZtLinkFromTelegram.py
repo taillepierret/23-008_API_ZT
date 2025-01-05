@@ -29,7 +29,7 @@ def getZtLinkFromTelegram():
     with TelegramClient('session_name', api_id, api_hash) as client:
         print("je suis la 4")
         # Parcours des messages
-        for message in client.iter_messages('group_username', limit=2):  # Remplace 'group_username' par le bon identifiant du groupe
+        for message in client.iter_messages(group_username, limit=2):  # Remplace 'group_username' par le bon identifiant du groupe
             if message.text:
                 link = extractLinkFromTelegramMessage(message.text)
                 if link:
