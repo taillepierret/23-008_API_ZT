@@ -41,7 +41,7 @@ def getZtLinkFromTelegram():
             print("Tentative de démarrage du client...")
             await client.start(phone_number)
             print("je suis la 5")
-            
+
             # Test si la connexion a été établie avec succès
             if not client.is_user_authorized():
                 print("Erreur : utilisateur non autorisé !")
@@ -49,6 +49,7 @@ def getZtLinkFromTelegram():
             
             print("Connexion établie. Récupération des messages...")
             async for message in client.iter_messages(group_username, limit=2):
+                print(f"Message reçu: {message.text}")
                 if message.text:
                     link = extractLinkFromTelegramMessage(message.text)
                     if link:
@@ -62,7 +63,9 @@ def getZtLinkFromTelegram():
 
     # Exécution de la fonction asynchrone dans la boucle d'événements
     try:
+        print("Exécution de la boucle d'événements...")
         result = loop.run_until_complete(fetch_data())
+        print(f"Résultat de la fonction fetch_data : {result}")
         return result
     except Exception as e:
         print(f"Erreur lors de l'exécution de la boucle d'événements : {e}")
