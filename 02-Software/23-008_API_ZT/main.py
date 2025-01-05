@@ -24,6 +24,10 @@ def search_api():
 
     try:
         flag_result_ok, contenus = getContentFromZt(query, content_type)
+        print("query: ", query)
+        print("content_type: ", content_type)
+        print("flag_result_ok: ", flag_result_ok)
+        print("contenus: ", contenus)
         if not flag_result_ok:
             return jsonify({"error": "Aucun résultat trouvé."}), 404
         else:
