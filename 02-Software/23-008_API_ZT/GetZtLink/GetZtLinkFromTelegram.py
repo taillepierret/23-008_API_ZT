@@ -20,7 +20,6 @@ def getZtLinkFromTelegram():
     """
     Get the last link from a Telegram group.
     """
-
     # Get the Telegram API keys
     print("je suis la 1")
     success, phone_number, api_id, api_hash = getTelegramApiKeys()
@@ -30,16 +29,25 @@ def getZtLinkFromTelegram():
 
     print("je suis la 3")
     time.sleep(2)  # Ajoute une pause pour vérifier l'état avant la connexion
+    
     # Ajout de la boucle d'événements explicite
     loop = asyncio.get_event_loop()
-    
+
     # Connexion et récupération des messages via TelegramClient
     async def fetch_data():
         try:
             print("je suis la 4")
             client = TelegramClient('session_name', api_id, api_hash)
-            await client.start()
+            print("Tentative de démarrage du client...")
+            await client.start(phone_number)
             print("je suis la 5")
+            
+            # Test si la connexion a été établie avec succès
+            if not client.is_user_authorized():
+                print("Erreur : utilisateur non autorisé !")
+                return False, "User not authorized"
+            
+            print("Connexion établie. Récupération des messages...")
             async for message in client.iter_messages(group_username, limit=2):
                 if message.text:
                     link = extractLinkFromTelegramMessage(message.text)
@@ -47,9 +55,15 @@ def getZtLinkFromTelegram():
                         print("Link found:", link)
                         return True, link
             return False, "No link found in the last 2 messages."
+        
         except Exception as e:
-            print(f"Error: {e}")
-            return False, None
+            print(f"Erreur pendant l'exécution : {e}")
+            return False, f"Exception: {str(e)}"
 
     # Exécution de la fonction asynchrone dans la boucle d'événements
-    return loop.run_until_complete(fetch_data())
+    try:
+        result = loop.run_until_complete(fetch_data())
+        return result
+    except Exception as e:
+        print(f"Erreur lors de l'exécution de la boucle d'événements : {e}")
+        return False, f"Loop Error: {str(e)}"
