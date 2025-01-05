@@ -1,3 +1,5 @@
+#to install run the command: pip install -r requirements.txt --break-system-packages
+
 argparse  # Standard library, pas besoin d'ajout
 requests
 Flask
