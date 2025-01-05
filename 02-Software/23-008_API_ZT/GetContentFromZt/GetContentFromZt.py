@@ -292,4 +292,4 @@ def getContentFromZt(search_query: str, content_type: str):
     contenus_extraits = trouver_contenu_sur_une_recherche(recherches, content_type)
     contenus_rassembles = rassembler_contenu_par_nom(contenus_extraits, content_type)
 
-    return True,recherches
+    return True,url_zone_telechargement
