@@ -280,7 +280,7 @@ def getContentFromZt(search_query: str, content_type: str):
     """
     Get the content from Zone Telechargement.
     """
-    url_zone_telechargement = ""
+    url_zone_telechargement = "https://www.zone-telechargement.tools"
     link_is_ok = test_link(url_zone_telechargement)
     if not link_is_ok:
         flag,url_zone_telechargement = getZtLink()
