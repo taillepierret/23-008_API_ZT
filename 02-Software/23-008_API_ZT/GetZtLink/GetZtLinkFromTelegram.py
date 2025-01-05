@@ -1,6 +1,7 @@
 from telethon.sync import TelegramClient
 import re
 from GetZtLink.GetTelegramApiKeys import getTelegramApiKeys
+import asyncio
 
 # if session_name.session file exists, it will be used to login without asking for a code and phone number
 
@@ -18,6 +19,8 @@ def getZtLinkFromTelegram():
     """
     Get the last link from a Telegram group.
     """
+
+    # Get the Telegram API keys
     print("je suis la 1")
     success, phone_number, api_id, api_hash = getTelegramApiKeys()
     print("je suis la 2")
@@ -25,14 +28,20 @@ def getZtLinkFromTelegram():
         return False, "GetTelegramApiKeys failed"
 
     print("je suis la 3")
-    # Utilisation synchrone de TelegramClient
-    with TelegramClient('session_name', api_id, api_hash) as client:
-        print("je suis la 4")
-        # Parcours des messages
-        for message in client.iter_messages(group_username, limit=2):  # Remplace 'group_username' par le bon identifiant du groupe
-            if message.text:
-                link = extractLinkFromTelegramMessage(message.text)
-                if link:
-                    print("Link found:", link)
-                    return True, link
-        return False, "No link found in the last 2 messages."
+    # Ajout de la boucle d'événements explicite
+    loop = asyncio.get_event_loop()
+    
+    # Connexion et récupération des messages via TelegramClient
+    async def fetch_data():
+        async with TelegramClient('session_name', api_id, api_hash) as client:
+            print("je suis la 4")
+            async for message in client.iter_messages(group_username, limit=2):
+                if message.text:
+                    link = extractLinkFromTelegramMessage(message.text)
+                    if link:
+                        print("Link found:", link)
+                        return True, link
+            return False, "No link found in the last 2 messages."
+
+    # Exécution de la fonction asynchrone dans la boucle d'événements
+    return loop.run_until_complete(fetch_data())
