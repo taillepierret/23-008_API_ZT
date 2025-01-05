@@ -133,13 +133,7 @@ def trouver_contenu_sur_une_page(page: str, type_de_contenu: str):
         phrase_contenant_les_infos = page[index_debut_recherche:index_fin_recherche]
         bande_audio = recherche_mot_entre_2_mots("<b>(",")</b>",phrase_contenant_les_infos,len(phrase_contenant_les_infos)-1)
 
-
-        if type_de_contenu == "series":
-            nom_de_contenu = recherche_mot_entre_2_mots(">"," -",phrase_contenant_les_infos,len(phrase_contenant_les_infos)-1)
-            numero_saison = recherche_mot_entre_2_mots(" - ","</a><br>",phrase_contenant_les_infos,len(phrase_contenant_les_infos)-1)
-
-        if type_de_contenu == "films":
-            nom_de_contenu = recherche_mot_entre_2_mots(">","</a>",phrase_contenant_les_infos,len(phrase_contenant_les_infos)-1)
+        nom_de_contenu = recherche_mot_entre_2_mots(">","</a>",phrase_contenant_les_infos,len(phrase_contenant_les_infos)-1)
 
         lien_vers_contenu = "/" + recherche_mot_entre_2_mots("href=\"","\">"+nom_de_contenu,phrase_contenant_les_infos,len(phrase_contenant_les_infos)-1)
         lien_vers_image = recherche_mot_entre_2_mots("src=\"","\" width",phrase_contenant_les_infos,len(phrase_contenant_les_infos)-1)
@@ -156,8 +150,6 @@ def trouver_contenu_sur_une_page(page: str, type_de_contenu: str):
 
         tab_donnees_recuperees = []
         tab_donnees_recuperees.append(nom_de_contenu)
-        if type_de_contenu == "series":
-            tab_donnees_recuperees.append(numero_saison)
         tab_donnees_recuperees.append(bande_audio)
         tab_donnees_recuperees.append(lien_vers_contenu)
         tab_donnees_recuperees.append(lien_vers_image)
@@ -241,37 +233,20 @@ def rassembler_contenu_par_nom(contenus: list, type_de_contenu: str):
         flag_presence_dans_tableau = False
         for contenu_rassemble in contenus_rassembles:
             if contenu_rassemble["nom"][0] == nom:
-                if type_de_contenu == "series":
-                    contenu_rassemble["saison"].append(contenu[1])
-                    contenu_rassemble["bande_audio"].append(contenu[2])
-                    contenu_rassemble["lien"].append(contenu[3])
-                    contenu_rassemble["image"].append(contenu[4])
-                    contenu_rassemble["date_de_publication"].append(contenu[5])
-                else:
-                    contenu_rassemble["bande_audio"].append(contenu[1])
-                    contenu_rassemble["lien"].append(contenu[2])
-                    contenu_rassemble["image"].append(contenu[3])
-                    contenu_rassemble["date_de_publication"].append(contenu[4])
+                contenu_rassemble["bande_audio"].append(contenu[1])
+                contenu_rassemble["lien"].append(contenu[2])
+                contenu_rassemble["image"].append(contenu[3])
+                contenu_rassemble["date_de_publication"].append(contenu[4])
                 flag_presence_dans_tableau = True
                 break
         if flag_presence_dans_tableau == False:
-            if type_de_contenu == "series":
-                contenus_rassembles.append({
-                    "nom": [contenu[0]],
-                    "saison": [contenu[1]],
-                    "bande_audio": [contenu[2]],
-                    "lien": [contenu[3]],
-                    "image": [contenu[4]],
-                    "date_de_publication": [contenu[5]]
-                })
-            else:
-                contenus_rassembles.append({
-                    "nom": [contenu[0]],
-                    "bande_audio": [contenu[1]],
-                    "lien": [contenu[2]],
-                    "image": [contenu[3]],
-                    "date_de_publication": [contenu[4]]
-                })
+            contenus_rassembles.append({
+                "nom": [contenu[0]],
+                "bande_audio": [contenu[1]],
+                "lien": [contenu[2]],
+                "image": [contenu[3]],
+                "date_de_publication": [contenu[4]]
+            })
     contenus_rassembles = json.dumps(contenus_rassembles)
     return contenus_rassembles
 
