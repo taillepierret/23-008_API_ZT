@@ -20,13 +20,17 @@ def getZtLinkFromTelegram():
     """
 
     # Get the Telegram API keys
+    print("je suis la 1")
     success, phone_number, api_id, api_hash = getTelegramApiKeys()
+    print("je suis la 2")
     if not success:
         return False,"GetTelegramApiKeys failed"
 
+    print("je suis la 3")
     with TelegramClient('session_name', api_id, api_hash).start(phone_number) as client: 
         
         # Access recent messages from the group
+        print("je suis la 4")
         for message in client.iter_messages(group_username, limit=2):
             if message.text:
                 link = extractLinkFromTelegramMessage(message.text)
