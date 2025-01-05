@@ -286,10 +286,10 @@ def getContentFromZt(search_query: str, content_type: str):
         flag,url_zone_telechargement = getZtLink()
     link_is_ok = test_link(url_zone_telechargement)
     if not link_is_ok:
-        return False, None
+        return False, url_zone_telechargement
     # Perform the search
     recherches = recherche_de_contenu(content_type, search_query, url_zone_telechargement)
     contenus_extraits = trouver_contenu_sur_une_recherche(recherches, content_type)
     contenus_rassembles = rassembler_contenu_par_nom(contenus_extraits, content_type)
 
-    return True,url_zone_telechargement
+    return True,"kk"
