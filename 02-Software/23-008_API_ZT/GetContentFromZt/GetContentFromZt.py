@@ -281,13 +281,18 @@ def getContentFromZt(search_query: str, content_type: str):
     Get the content from Zone Telechargement.
     """
     url_zone_telechargement = ""
+    print("je suis la 1")
     link_is_ok = test_link(url_zone_telechargement)
     if not link_is_ok:
+        print("je suis la 2")
         flag,url_zone_telechargement = getZtLink()
+    print("je suis la 3")
     link_is_ok = test_link(url_zone_telechargement)
     if not link_is_ok:
-        return False, "kk"
+        print("je suis la 4")
+        return False, url_zone_telechargement
     # Perform the search
+    print("je suis la 5")
     recherches = recherche_de_contenu(content_type, search_query, url_zone_telechargement)
     contenus_extraits = trouver_contenu_sur_une_recherche(recherches, content_type)
     contenus_rassembles = rassembler_contenu_par_nom(contenus_extraits, content_type)
