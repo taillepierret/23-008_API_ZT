@@ -13,7 +13,7 @@ from GetZtLink.GetZtLink import getZtLink
 
 nombre_de_page_max = 15
 
-list_media_available = ["films","series"]
+list_media_available = ["films","series","musiques","mangas"]
                    
 class Contenu:
     def __init__(self, nom: str, saison: str, bande_audio: str, lien: str, image: str, date_de_publication: str):
@@ -255,7 +255,7 @@ def getContentFromZt(search_query: str, content_type: str):
     """
     Get the content from Zone Telechargement.
     """
-    url_zone_telechargement = "https://www.zone-telechargement.tools"
+    url_zone_telechargement = "https://www.zone-telechargement.irish"
     link_is_ok = test_link(url_zone_telechargement)
     if not link_is_ok:
         flag,url_zone_telechargement = getZtLink()
