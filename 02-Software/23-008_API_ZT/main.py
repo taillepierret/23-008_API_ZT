@@ -6,7 +6,7 @@ from debug import niveau_log
 from flask import Flask, request, jsonify
 import json
 from GetContentFromZt.GetContentFromZt import getContentFromZt
-
+#kk
 app = Flask(__name__)
 
 # Exemple de requête : http://ip_adresse:5000/search?query=oui&type=series
