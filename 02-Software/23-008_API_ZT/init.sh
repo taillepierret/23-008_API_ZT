@@ -1,113 +1,83 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-### ===== CONFIG =====
-REPO_URL="https://github.com/taillepierret/23-008_API_ZT.git"
-
-# Dossiers séparés (Option A)
+# ====== A ADAPTER ======
+REPO_URL="https://github.com/taillepierret/23-008_API_ZT.git"       # ex: git@github.com:toi/zt_api.git
 PROD_DIR="/opt/zt_api_prod"
 DEV_DIR="/opt/zt_api_dev"
 
-# Chemin du code (tel qu'il est dans ton repo)
-APP_SUBDIR="02-Software"
+PROD_BRANCH="main"
+DEV_BRANCH="develop"
 
-# User systemd
-SERVICE_USER="ztapi"
-SERVICE_GROUP="ztapi"
-
-# Ports
 PROD_PORT="5000"
 DEV_PORT="5001"
 
-### ===== HELPERS =====
-log(){ echo "[init] $*"; }
+# Dossier où se trouve main.py (d'après ton WorkingDirectory actuel)
+APP_SUBDIR="02-Software/23-008_API_ZT"
 
-require_root() {
-  if [[ "${EUID}" -ne 0 ]]; then
-    echo "Lance en root : sudo ./init.sh"
-    exit 1
-  fi
-}
+SERVICE_USER="ztapi"
+SERVICE_GROUP="ztapi"
+
+# (Optionnel) fichiers d'env séparés
+PROD_ENV_FILE="/etc/zt-api/prod.env"
+DEV_ENV_FILE="/etc/zt-api/dev.env"
+# =======================
 
 ensure_user() {
   if ! id -u "${SERVICE_USER}" >/dev/null 2>&1; then
-    log "Création de l'utilisateur système ${SERVICE_USER}..."
-    useradd --system --create-home --home-dir "/home/${SERVICE_USER}" --shell /usr/sbin/nologin "${SERVICE_USER}"
+    useradd --system --create-home --shell /usr/sbin/nologin "${SERVICE_USER}"
   fi
-}
-
-apt_update_upgrade() {
-  log "Mise à jour Raspberry Pi OS (apt update + full-upgrade)..."
-  apt update -y
-  DEBIAN_FRONTEND=noninteractive apt full-upgrade -y
-  apt autoremove -y
-}
-
-install_deps() {
-  log "Installation des dépendances..."
-  apt install -y git ca-certificates python3 python3-venv python3-pip
 }
 
 clone_or_update() {
-  local target_dir="$1"
+  local dir="$1"
   local branch="$2"
 
-  mkdir -p "${target_dir}"
-  chown -R "${SERVICE_USER}:${SERVICE_GROUP}" "${target_dir}"
-
-  if [[ -d "${target_dir}/.git" ]]; then
-    log "Repo déjà présent (${target_dir}), reset vers origin/${branch}..."
-    sudo -u "${SERVICE_USER}" -H bash -c "
-      cd '${target_dir}' &&
-      git fetch origin '${branch}' &&
-      git checkout -f '${branch}' || git checkout -f -b '${branch}' 'origin/${branch}' &&
-      git reset --hard 'origin/${branch}'
-    "
-  else
-    log "Clonage (${branch}) dans ${target_dir}..."
-    sudo -u "${SERVICE_USER}" -H git clone --branch "${branch}" --single-branch "${REPO_URL}" "${target_dir}"
+  if [[ ! -d "${dir}/.git" ]]; then
+    git clone "${REPO_URL}" "${dir}"
   fi
+
+  cd "${dir}"
+  git fetch --all --prune
+  git checkout "${branch}"
+  git pull --ff-only origin "${branch}"
 }
 
-setup_venv_and_deps() {
-  local base_dir="$1"
-  local app_dir="${base_dir}/${APP_SUBDIR}"
-  local venv_dir="${base_dir}/venv"
+ensure_venv_and_deps() {
+  local dir="$1"
+  local app_dir="${dir}/${APP_SUBDIR}"
+  local venv="${dir}/venv"
 
-  if [[ ! -d "${app_dir}" ]]; then
-    echo "ERREUR: Dossier app introuvable: ${app_dir}"
-    exit 1
+  if [[ ! -d "${venv}" ]]; then
+    python3 -m venv "${venv}"
   fi
 
-  log "Création venv: ${venv_dir}"
-  if [[ ! -d "${venv_dir}" ]]; then
-    sudo -u "${SERVICE_USER}" -H python3 -m venv "${venv_dir}"
-  fi
+  "${venv}/bin/python" -m pip install -U pip setuptools wheel
 
-  log "Installation requirements: ${app_dir}/requirements.txt"
+  # requirements.txt : on essaie d'abord dans APP_DIR, sinon à la racine
   if [[ -f "${app_dir}/requirements.txt" ]]; then
-    sudo -u "${SERVICE_USER}" -H bash -c "
-      '${venv_dir}/bin/pip' install --upgrade pip wheel setuptools &&
-      '${venv_dir}/bin/pip' install -r '${app_dir}/requirements.txt'
-    "
+    "${venv}/bin/pip" install -r "${app_dir}/requirements.txt"
+  elif [[ -f "${dir}/requirements.txt" ]]; then
+    "${venv}/bin/pip" install -r "${dir}/requirements.txt"
   else
-    log "ATTENTION: requirements.txt introuvable dans ${app_dir} (skip)."
+    echo "WARN: requirements.txt introuvable dans ${app_dir} ni dans ${dir} (je skip l'install deps)"
   fi
 }
 
 write_service() {
   local service_name="$1"
-  local base_dir="$2"
+  local dir="$2"
   local port="$3"
-  local env_mode="$4"   # production / development
+  local flask_env="$4"
+  local env_file="$5"
 
-  local app_dir="${base_dir}/${APP_SUBDIR}"
-  local venv_dir="${base_dir}/venv"
-  local service_file="/etc/systemd/system/${service_name}.service"
+  local app_dir="${dir}/${APP_SUBDIR}"
+  local venv="${dir}/venv"
+  local unit="/etc/systemd/system/${service_name}.service"
 
-  log "Écriture service systemd: ${service_file}"
+  mkdir -p /etc/zt-api
 
-  cat > "${service_file}" <<EOF
+  cat > "${unit}" <<EOF
 [Unit]
 Description=${service_name}
 After=network-online.target
@@ -118,11 +88,16 @@ Type=simple
 User=${SERVICE_USER}
 Group=${SERVICE_GROUP}
 WorkingDirectory=${app_dir}
-Environment=FLASK_APP=main.py
-Environment=FLASK_ENV=${env_mode}
-# Pour éviter le reloader multiple en systemd
-Environment=WERKZEUG_RUN_MAIN=true
-ExecStart=${venv_dir}/bin/python -m flask run --host 0.0.0.0 --port ${port}
+
+# Env "logique"
+Environment=FLASK_ENV=${flask_env}
+
+# Env fichier (optionnel)
+EnvironmentFile=-${env_file}
+
+# IMPORTANT: app explicite + pas de reloader/debugger sous systemd
+ExecStart=${venv}/bin/python -m flask --app main:app run --host 0.0.0.0 --port ${port} --no-reload --no-debugger
+
 Restart=always
 RestartSec=3
 
@@ -131,39 +106,29 @@ WantedBy=multi-user.target
 EOF
 }
 
-enable_services() {
-  log "Activation des services..."
+main() {
+  ensure_user
+
+  # Permissions (optionnel mais propre)
+  mkdir -p "${PROD_DIR}" "${DEV_DIR}"
+  chown -R "${SERVICE_USER}:${SERVICE_GROUP}" "${PROD_DIR}" "${DEV_DIR}"
+
+  # PROD
+  clone_or_update "${PROD_DIR}" "${PROD_BRANCH}"
+  ensure_venv_and_deps "${PROD_DIR}"
+  write_service "zt-api-prod" "${PROD_DIR}" "${PROD_PORT}" "production" "${PROD_ENV_FILE}"
+
+  # DEV
+  clone_or_update "${DEV_DIR}" "${DEV_BRANCH}"
+  ensure_venv_and_deps "${DEV_DIR}"
+  write_service "zt-api-dev" "${DEV_DIR}" "${DEV_PORT}" "development" "${DEV_ENV_FILE}"
+
   systemctl daemon-reload
-  systemctl enable --now zt-api-prod.service
-  systemctl enable --now zt-api-dev.service
+  systemctl enable --now zt-api-prod zt-api-dev
+
+  echo
+  echo "OK. Status:"
+  systemctl --no-pager -l status zt-api-prod zt-api-dev
 }
 
-status_hint() {
-  echo
-  echo "=== DONE ==="
-  echo "PROD: http://<IP_DU_PI>:${PROD_PORT}"
-  echo "DEV : http://<IP_DU_PI>:${DEV_PORT}"
-  echo
-  echo "Logs:"
-  echo "  journalctl -u zt-api-prod -f"
-  echo "  journalctl -u zt-api-dev  -f"
-  echo
-}
-
-### ===== MAIN =====
-require_root
-apt_update_upgrade
-install_deps
-ensure_user
-
-clone_or_update "${PROD_DIR}" "main"
-setup_venv_and_deps "${PROD_DIR}"
-
-clone_or_update "${DEV_DIR}" "develop"
-setup_venv_and_deps "${DEV_DIR}"
-
-write_service "zt-api-prod" "${PROD_DIR}" "${PROD_PORT}" "production"
-write_service "zt-api-dev"  "${DEV_DIR}"  "${DEV_PORT}"  "development"
-
-enable_services
-status_hint
+main "$@"
