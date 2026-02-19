@@ -9,7 +9,7 @@ PROD_DIR="/opt/zt_api_prod"
 DEV_DIR="/opt/zt_api_dev"
 
 # Chemin du code (tel qu'il est dans ton repo)
-APP_SUBDIR="02-Software/23-008_API_ZT"
+APP_SUBDIR="02-Software"
 
 # User systemd
 SERVICE_USER="ztapi"
