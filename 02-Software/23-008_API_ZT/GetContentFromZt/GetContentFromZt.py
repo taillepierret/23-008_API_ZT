@@ -11,7 +11,7 @@ from GetZtLink.GetZtLink import getZtLink
 #TODO feature: ajouter les liens vers des contenus dans uen bdd qui sont deja decaptchatises, si ca marche pas aller les chercehr dans zt et les tester avant de les envoyer dans jdowloader
 #TODO ajouter dans un fichier l'historique des recherches et des contenus trouves
 
-nombre_de_page_max = 15
+nombre_de_page_max = 100
 
 list_media_available = ["films","series","musiques","mangas"]
                    
@@ -83,7 +83,7 @@ def recherche_de_contenu (type_de_contenu: str, nom_de_la_recherche: str, url_zo
             return tab_recherches
         elif i == nombre_de_page_max-1:
             #dbg.debug_print(niveau_log.ERREUR ,f"Veuillez faire une recherche plus concise, il y a trop de pages de resultats, le nombre de page maximum est de : {nombre_de_page_max}",True)
-            return None
+            return tab_recherches
 
 def ecrire_resultat_dans_un_fichier(resultat_recherche:str):
     # Ouvrir le fichier HTML en mode écriture
@@ -251,11 +251,10 @@ def rassembler_contenu_par_nom(contenus: list, type_de_contenu: str):
     return contenus_rassembles
 
 
-def getContentFromZt(search_query: str, content_type: str):
+def getContentFromZt(search_query: str, content_type: str, url_zone_telechargement: str):
     """
     Get the content from Zone Telechargement.
     """
-    url_zone_telechargement = "https://www.zone-telechargement.rent"
     link_is_ok = test_link(url_zone_telechargement)
     if not link_is_ok:
         flag,url_zone_telechargement = getZtLink()

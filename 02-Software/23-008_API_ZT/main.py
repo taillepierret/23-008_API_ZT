@@ -6,8 +6,85 @@ from debug import niveau_log
 from flask import Flask, request, jsonify
 import json
 from GetContentFromZt.GetContentFromZt import getContentFromZt
-#kk
+import os
+from pathlib import Path
+from threading import Lock
+from urllib.parse import urlparse
+
 app = Flask(__name__)
+
+
+DEFAULT_DOMAIN = "https://www.zone-telechargement.rent"
+
+# Fichier de config à côté de main.py (marche sur PC et RPi)
+CONFIG_FILE = Path(__file__).resolve().parent / "zt_domain.txt"
+
+# Si tu veux pouvoir overrider par variable d'env :
+# export ZT_DOMAIN_FILE=/opt/zt_api_prod/zt_domain.txt
+CONFIG_FILE = Path(os.environ.get("ZT_DOMAIN_FILE", str(CONFIG_FILE)))
+
+_domain_lock = Lock()
+_cached_domain = None
+
+
+def _is_valid_url(s: str) -> bool:
+    try:
+        u = urlparse(s.strip())
+        return u.scheme in ("http", "https") and bool(u.netloc)
+    except Exception:
+        return False
+
+
+def load_domain() -> str:
+    global _cached_domain
+    with _domain_lock:
+        if _cached_domain:
+            return _cached_domain
+
+        if CONFIG_FILE.exists():
+            txt = CONFIG_FILE.read_text(encoding="utf-8").strip()
+            if txt and _is_valid_url(txt):
+                _cached_domain = txt
+                return _cached_domain
+
+        _cached_domain = DEFAULT_DOMAIN
+        return _cached_domain
+
+
+def save_domain(new_domain: str) -> str:
+    global _cached_domain
+    new_domain = new_domain.strip()
+
+    if not _is_valid_url(new_domain):
+        raise ValueError("URL invalide. Exemple attendu: https://exemple.com")
+
+    with _domain_lock:
+        tmp = CONFIG_FILE.with_suffix(".tmp")
+        tmp.write_text(new_domain + "\n", encoding="utf-8")
+        tmp.replace(CONFIG_FILE)
+        _cached_domain = new_domain
+
+    return new_domain
+
+
+@app.route("/config/domain", methods=["GET"])
+def get_domain():
+    return jsonify({"domain": load_domain(), "config_file": str(CONFIG_FILE)}), 200
+
+
+@app.route("/config/domain", methods=["PUT"])
+def put_domain():
+    data = request.get_json(silent=True) or {}
+    new_domain = data.get("domain")
+
+    if not new_domain:
+        return jsonify({"error": "JSON attendu: {\"domain\": \"https://...\"}"}), 400
+
+    try:
+        saved = save_domain(new_domain)
+        return jsonify({"domain": saved}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400
 
 # Exemple de requête : http://ip_adresse:5000/search?query=oui&type=series
 @app.route("/search", methods=["GET"])
@@ -25,7 +102,8 @@ def search_api():
     try:
         print("query: ", query)
         print("content_type: ", content_type)
-        flag_result_ok, contenus = getContentFromZt(query, content_type)
+        url_zone_telechargement = load_domain()
+        flag_result_ok, contenus = getContentFromZt(query, content_type, url_zone_telechargement)
         if not flag_result_ok:
             return jsonify({"error": "Aucun résultat trouvé."}), 404
         else:
@@ -47,7 +125,8 @@ def main():
 
     if args.mode == "test":
         # Mode Test : Tester la fonction getContentFromZt
-        flag_result_ok, contenus = getContentFromZt("oui", "series")
+        url_zone_telechargement = load_domain()
+        flag_result_ok, contenus = getContentFromZt("never+back+down", "films",url_zone_telechargement)
         if not flag_result_ok:
             dbg.debug_print(niveau_log.ERREUR, "Aucun résultat trouvé.", True)
         else:
