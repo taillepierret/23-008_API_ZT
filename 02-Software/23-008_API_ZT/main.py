@@ -67,6 +67,8 @@ def save_domain(new_domain: str) -> str:
     return new_domain
 
 
+
+#exemple: http://192.168.1.18:5001/config/domain
 @app.route("/config/domain", methods=["GET"])
 def get_domain():
     return jsonify({"domain": load_domain(), "config_file": str(CONFIG_FILE)}), 200
